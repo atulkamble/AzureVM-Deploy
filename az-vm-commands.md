@@ -1,3 +1,100 @@
+```
+az commands 
+
+az cli 
+
+az --version 
+
+az login 
+
+az login --tenant tenant-id 
+
+bash - bourne again shell - 
+
+// check tenant id from azure portal >> tenant properties 
+
+az group create \
+  --name myResourceGroup \
+  --location eastus
+
+az group create --name myResourceGroup --location eastus
+
+az vm create \
+  --resource-group myResourceGroup \
+  --name myVM \
+  --image Ubuntu2204 \
+  --size Standard_B1s \
+  --admin-username azureuser \
+  --generate-ssh-keys \
+  --public-ip-sku Standard \
+  --os-disk-size-gb 30
+
+az vm open-port \
+  --resource-group myResourceGroup \
+  --name myVM \
+  --port 80
+
+az vm open-port --resource-group myResourceGroup --name myVM --port 80
+
+az vm extension set \
+  --resource-group myResourceGroup \
+  --vm-name myVM \
+  --name CustomScript \
+  --publisher Microsoft.Azure.Extensions \
+  --settings '{
+    "commandToExecute": "sudo apt update && sudo apt install -y nginx"
+  }'
+
+OR 
+
+ 1️⃣ Create settings.json 
+ { 
+   "commandToExecute": "sudo apt update && sudo apt install -y nginx" 
+ } 
+  
+ 2️⃣ Run command 
+ az vm extension set ` 
+   --resource-group myRG ` 
+   --vm-name vm-ubuntu-01 ` 
+   --name CustomScript ` 
+   --publisher Microsoft.Azure.Extensions ` 
+   --settings settings.json
+
+
+http://vm-ip
+
+az vm list 
+
+az vm delete \
+  --resource-group myResourceGroup \
+  --name myVM 
+
+az vm create \
+  --resource-group myResourceGroup \
+  --name MyVM \
+  --image Win2022Datacenter \
+  --size Standard_B2s \
+  --admin-username azureadmin \
+  --admin-password 'StrongPassword@123' \
+  --public-ip-sku Standard \
+  --os-disk-size-gb 127
+
+
+az vm delete \
+  --resource-group myResourceGroup \
+  --name MyVM 
+
+az group delete \
+  --name myResourceGroup 
+
+
+// VS Code >> azure terraform, hashicorp terraform 
+
+powershell >> run as admin >> choco install terraform 
+
+```
+
+
 **Azure VM management commands** using **Azure CLI** and **Azure PowerShell**, as these are the two most common interfaces for Azure VM operations.
 
 ---
