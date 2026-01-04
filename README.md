@@ -214,7 +214,228 @@ az group delete \
 * Restrict NSG ports (avoid `0.0.0.0/0`)
 
 ---
+## 🔹 Azure VM Initialization Options – Big Picture
 
+![Image](https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/n-tier/images/single-vm-diagram.svg)
+
+![Image](https://labresources.whizlabs.com/391a18a3eebf32fc6e566ec5de369a58/cse.png)
+
+Azure provides **two primary mechanisms** to configure VMs at boot or post-deployment:
+
+| Method            | Runs When       | Best For                                 |
+| ----------------- | --------------- | ---------------------------------------- |
+| **Cloud-Init**    | First boot only | OS-level initialization (Linux)          |
+| **VM Extensions** | Anytime         | Post-deploy automation (Linux + Windows) |
+
+---
+
+# 1️⃣ Azure Cloud-Init (Linux Only)
+
+### 🔹 What is Cloud-Init?
+
+**Cloud-Init** is a **native Linux initialization system** that runs **once on first boot**.
+
+✔ Runs **before SSH login**
+✔ Faster than extensions
+✔ Ideal for **immutable infrastructure**
+
+---
+
+## 🔹 Typical Cloud-Init Use Cases
+
+* Create users & SSH keys
+* Install packages
+* Configure hostname
+* Write config files
+* Run bootstrap scripts
+
+---
+
+## 🔹 Cloud-Init YAML Example
+
+```yaml
+#cloud-config
+package_update: true
+package_upgrade: true
+
+packages:
+  - nginx
+  - git
+  - docker.io
+
+users:
+  - name: devops
+    groups: sudo
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ssh-rsa AAAAB3NzaC1...
+
+runcmd:
+  - systemctl enable nginx
+  - systemctl start nginx
+  - echo "Cloud-init completed" > /var/log/cloud-init-done.log
+```
+
+---
+
+## 🔹 Deploy VM with Cloud-Init (Azure CLI)
+
+```bash
+az vm create \
+  --resource-group rg-demo \
+  --name linux-vm-cloudinit \
+  --image Ubuntu2204 \
+  --admin-username azureuser \
+  --generate-ssh-keys \
+  --custom-data cloud-init.yaml
+```
+
+📌 **Note**:
+
+* `--custom-data` = cloud-init YAML
+* Runs **only once** (on first boot)
+
+---
+
+## 🔹 Verify Cloud-Init Execution
+
+```bash
+cloud-init status
+cloud-init analyze
+cat /var/log/cloud-init-output.log
+```
+
+---
+
+# 2️⃣ Azure VM Script Extensions (Advanced)
+
+### 🔹 What are VM Extensions?
+
+VM Extensions are **agents installed on the VM** that allow you to:
+
+✔ Run scripts anytime
+✔ Re-run scripts
+✔ Integrate with CI/CD
+✔ Configure post-deployment
+
+---
+
+## 🔹 Common Azure Script Extensions
+
+| Extension                   | OS              |
+| --------------------------- | --------------- |
+| **Custom Script Extension** | Linux / Windows |
+| **DSC Extension**           | Windows         |
+| **Chef / Puppet / Ansible** | Linux / Windows |
+| **Azure Monitor Agent**     | Both            |
+
+---
+
+# 3️⃣ Custom Script Extension – Linux
+
+![Image](https://ochzhen.com/assets/img/azure-custom-script-extension-linux/assigned-identity-to-vmss.png)
+
+![Image](https://media.licdn.com/dms/image/v2/C5612AQEHKEJUPWuV2A/article-cover_image-shrink_720_1280/article-cover_image-shrink_720_1280/0/1584082178681?e=2147483647\&t=SBo0aofLnNj49QPrPJH6em-bhmHZ30M_dr8rxPg5NyU\&v=beta)
+
+![Image](https://learn.microsoft.com/en-us/azure/architecture/virtual-machines/media/baseline-network-egress.svg)
+
+### 🔹 Use Cases
+
+* Install applications
+* Pull GitHub scripts
+* Apply patches
+* Reconfigure VM after creation
+
+---
+
+## 🔹 Linux Custom Script Extension (Inline)
+
+```bash
+az vm extension set \
+  --resource-group rg-demo \
+  --vm-name linux-vm \
+  --name customScript \
+  --publisher Microsoft.Azure.Extensions \
+  --settings '{
+    "commandToExecute": "apt update && apt install -y nginx"
+  }'
+```
+
+---
+
+## 🔹 Linux Script from GitHub / Storage
+
+```bash
+az vm extension set \
+  --resource-group rg-demo \
+  --vm-name linux-vm \
+  --name customScript \
+  --publisher Microsoft.Azure.Extensions \
+  --settings '{
+    "fileUris": ["https://raw.githubusercontent.com/org/repo/main/setup.sh"],
+    "commandToExecute": "bash setup.sh"
+  }'
+```
+
+---
+
+# 4️⃣ Custom Script Extension – Windows
+
+### 🔹 PowerShell Example
+
+```bash
+az vm extension set \
+  --resource-group rg-demo \
+  --vm-name win-vm \
+  --name CustomScriptExtension \
+  --publisher Microsoft.Compute \
+  --settings '{
+    "commandToExecute": "powershell Install-WindowsFeature -Name Web-Server"
+  }'
+```
+
+---
+
+# 5️⃣ Cloud-Init vs Extensions – Architect View
+
+| Feature        | Cloud-Init  | Script Extension |
+| -------------- | ----------- | ---------------- |
+| OS Support     | Linux only  | Linux + Windows  |
+| Execution      | First boot  | Anytime          |
+| Speed          | Very fast   | Moderate         |
+| Re-run         | ❌ No        | ✅ Yes            |
+| CI/CD friendly | ⚠️ Limited  | ✅ Yes            |
+| Best For       | Base config | App config       |
+
+---
+
+# 6️⃣ Best-Practice Architecture (Real World)
+
+✅ **Cloud-Init**
+
+* Users
+* SSH
+* OS hardening
+* Docker installation
+
+✅ **Extensions**
+
+* App deployment
+* Monitoring agent
+* Security tools
+* CI/CD triggered updates
+
+---
+
+## 🧠 Interview Tip (Important)
+
+> **Cloud-Init = OS bootstrap**
+> **Extensions = Configuration management**
+
+This distinction is **frequently asked** in **Azure interviews**.
+
+---
 **complete list of methods to create an Azure VM**
 
 ---
