@@ -1,3 +1,220 @@
+<div align="center">
+
+[![Open in Codespaces](https://img.shields.io/badge/Open%20in-Codespaces-24292e?logo=github&style=for-the-badge)](https://codespaces.new/atulkamble/template.git)
+[![Open with VS Code](https://img.shields.io/badge/Open%20with-VS%20Code-007ACC?logo=visualstudiocode&style=for-the-badge)](https://vscode.dev/github/atulkamble/template)
+[![Open with GitHub Desktop](https://img.shields.io/badge/Open%20with-GitHub%20Desktop-purple?logo=github&style=for-the-badge)](https://desktop.github.com/)
+
+**🚀 MyApp** | Built with ❤️ by [Atul Kamble](https://github.com/atulkamble)
+
+[![GitHub](https://img.shields.io/badge/GitHub-atulkamble-181717?logo=github)](https://github.com/atulkamble)
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-atuljkamble-0A66C2?logo=linkedin)](https://www.linkedin.com/in/atuljkamble/)
+[![X](https://img.shields.io/badge/X-atul_kamble-000000?logo=x)](https://x.com/atul_kamble)
+
+**Version 1.0.0** | Last Updated: December 2025
+
+</div>
+
+Below is an **step-by-step Azure CLI guide** for **launching both Linux (Ubuntu Server) and Windows Server Azure VMs**, including **Azure VM Extensions (Custom Script)**.
+
+This is **production-ready** and suitable for **labs, demos, CI/CD pipelines, and real projects**.
+
+---
+
+## 🔐 1️⃣ Login & Set Subscription
+
+```bash
+az login
+az account set --subscription "<SUBSCRIPTION_ID>"
+```
+
+---
+
+## 📦 2️⃣ Create Resource Group
+
+```bash
+az group create \
+  --name rg-azure-vm-lab \
+  --location eastus
+```
+
+---
+
+# 🐧 Launch Azure VM – **Linux (Ubuntu Server)**
+
+![Image](https://k21academy.com/wp-content/uploads/2020/07/Azure-portal.png)
+
+![Image](https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/n-tier/images/single-vm-diagram.svg)
+
+![Image](https://res.cloudinary.com/canonical/image/fetch/f_auto%2Cq_auto%2Cfl_sanitize%2Cc_fill%2Cw_720/https%3A%2F%2Flh5.googleusercontent.com%2FM8fI_OhgDjiEawxsoUmMLDFw5QltILoGHjXczOI-H6nY9j3P_Oml9Ub8KkML7veDUaSTJmhU9T8Qf9uiTZxcJNesSGtdnZQdo5g_FN_roe9T_f_w1aPvcOPuIUmb5sS8x-MJic13)
+
+## 3️⃣ Create Ubuntu Server VM
+
+```bash
+az vm create \
+  --resource-group rg-azure-vm-lab \
+  --name vm-ubuntu-01 \
+  --image Ubuntu2204 \
+  --size Standard_B2s \
+  --admin-username azureuser \
+  --generate-ssh-keys \
+  --public-ip-sku Standard \
+  --os-disk-size-gb 30
+```
+
+### ✅ What this does
+
+* Creates **Ubuntu Server 22.04 LTS**
+* Generates SSH keys automatically
+* Attaches a public IP
+* Uses **Standard_B2s** VM size
+
+---
+
+## 4️⃣ Open SSH & HTTP Ports (Linux)
+
+```bash
+az vm open-port \
+  --resource-group rg-azure-vm-lab \
+  --name vm-ubuntu-01 \
+  --port 22
+```
+
+```bash
+az vm open-port \
+  --resource-group rg-azure-vm-lab \
+  --name vm-ubuntu-01 \
+  --port 80
+```
+
+---
+
+## 5️⃣ Linux VM – Custom Script Extension (Install NGINX)
+
+```bash
+az vm extension set \
+  --resource-group rg-azure-vm-lab \
+  --vm-name vm-ubuntu-01 \
+  --name CustomScript \
+  --publisher Microsoft.Azure.Extensions \
+  --settings '{
+    "commandToExecute": "sudo apt update && sudo apt install -y nginx"
+  }'
+```
+
+---
+
+# 🪟 Launch Azure VM – **Windows Server**
+
+![Image](https://learn.microsoft.com/en-us/azure/architecture/reference-architectures/n-tier/images/single-vm-diagram.svg)
+
+![Image](https://www.thomasmaurer.ch/wp-content/uploads/2021/11/Windows-Server-2022-Azure-Edition-scaled.jpg)
+
+![Image](https://learn.microsoft.com/en-us/azure-stack/user/media/iaas-architecture-vm-windows/image1.png?view=azs-2506)
+
+## 6️⃣ Create Windows Server VM
+
+```bash
+az vm create \
+  --resource-group rg-azure-vm-lab \
+  --name vm-windows-01 \
+  --image Win2022Datacenter \
+  --size Standard_B2s \
+  --admin-username azureadmin \
+  --admin-password 'StrongPassword@123' \
+  --public-ip-sku Standard \
+  --os-disk-size-gb 64
+```
+
+⚠️ **Password requirements**
+
+* Min 12 chars
+* Uppercase + lowercase
+* Number + special char
+
+---
+
+## 7️⃣ Open RDP & HTTP Ports (Windows)
+
+```bash
+az vm open-port \
+  --resource-group rg-azure-vm-lab \
+  --name vm-windows-01 \
+  --port 3389
+```
+
+```bash
+az vm open-port \
+  --resource-group rg-azure-vm-lab \
+  --name vm-windows-01 \
+  --port 80
+```
+
+---
+
+## 8️⃣ Windows VM – Custom Script Extension (Install IIS)
+
+```bash
+az vm extension set \
+  --resource-group rg-azure-vm-lab \
+  --vm-name vm-windows-01 \
+  --name CustomScriptExtension \
+  --publisher Microsoft.Compute \
+  --settings '{
+    "commandToExecute": "powershell Install-WindowsFeature -Name Web-Server"
+  }'
+```
+
+---
+
+## 📋 9️⃣ List VM Extensions
+
+```bash
+az vm extension list \
+  --resource-group rg-azure-vm-lab \
+  --vm-name vm-ubuntu-01 \
+  --output table
+```
+
+```bash
+az vm extension list \
+  --resource-group rg-azure-vm-lab \
+  --vm-name vm-windows-01 \
+  --output table
+```
+
+---
+
+## 🔍 🔟 Get Public IP Addresses
+
+```bash
+az vm list-ip-addresses \
+  --resource-group rg-azure-vm-lab \
+  --output table
+```
+
+---
+
+## 🧹 1️⃣1️⃣ Clean-up Resources
+
+```bash
+az group delete \
+  --name rg-azure-vm-lab \
+  --yes --no-wait
+```
+
+---
+
+## 🎯 Best Practices (Production)
+
+* Use **cloud-init** for Linux bootstrapping
+* Store scripts in **GitHub / Azure Storage**
+* Use **Azure Key Vault** for secrets
+* Use **Bicep / Terraform** instead of raw CLI
+* Enable **Azure Monitor Agent**
+* Restrict NSG ports (avoid `0.0.0.0/0`)
+
+---
+
 **complete list of methods to create an Azure VM**
 
 ---
