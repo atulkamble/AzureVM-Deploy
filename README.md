@@ -33,7 +33,7 @@ az account set --subscription "<SUBSCRIPTION_ID>"
 
 ```bash
 az group create \
-  --name rg-azure-vm-lab \
+  --name myRG \
   --location eastus
 ```
 
@@ -51,13 +51,14 @@ az group create \
 
 ```bash
 az vm create \
-  --resource-group rg-azure-vm-lab \
-  --name vm-ubuntu-01 \
+  --resource-group myRG \
+  --name myVM \
   --image Ubuntu2204 \
-  --size Standard_B2s \
-  --admin-username azureuser \
-  --generate-ssh-keys \
-  --public-ip-sku Standard \
+  --size Standard_B1s \
+  --admin-username atul \
+  --admin-password 'Password@123' \
+  --authentication-type password \
+  --public-ip-sku Standard
   --os-disk-size-gb 30
 ```
 
@@ -74,15 +75,15 @@ az vm create \
 
 ```bash
 az vm open-port \
-  --resource-group rg-azure-vm-lab \
-  --name vm-ubuntu-01 \
+  --resource-group myRG \
+  --name myVM \
   --port 22
 ```
 
 ```bash
 az vm open-port \
-  --resource-group rg-azure-vm-lab \
-  --name vm-ubuntu-01 \
+  --resource-group myRG \
+  --name myVM \
   --port 80
 ```
 
@@ -92,8 +93,8 @@ az vm open-port \
 
 ```bash
 az vm extension set \
-  --resource-group rg-azure-vm-lab \
-  --vm-name vm-ubuntu-01 \
+  --resource-group myRG \
+  --vm-name myVM \
   --name CustomScript \
   --publisher Microsoft.Azure.Extensions \
   --settings '{
@@ -115,8 +116,8 @@ az vm extension set \
 
 ```bash
 az vm create \
-  --resource-group rg-azure-vm-lab \
-  --name vm-windows-01 \
+  --resource-group myRG \
+  --name myVM \
   --image Win2022Datacenter \
   --size Standard_B2s \
   --admin-username azureadmin \
@@ -137,8 +138,8 @@ az vm create \
 
 ```bash
 az vm open-port \
-  --resource-group rg-azure-vm-lab \
-  --name vm-windows-01 \
+  --resource-group myRG \
+  --name myVM \
   --port 3389
 ```
 
