@@ -1,4 +1,4 @@
-## Azure Virtual Machines — Key Topics & Practice Notes
+## Azure Virtual Machines 
 
 ### 1. VM Creation — Portal + CLI
 
