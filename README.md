@@ -1,3 +1,386 @@
+## Azure Virtual Machines — Key Topics & Practice Notes
+
+### 1. VM Creation — Portal + CLI
+
+**Portal flow:**
+
+Azure Portal → Virtual Machines → Create → Azure Virtual Machine
+
+Configure:
+
+| Setting | Example |
+|---|---|
+| Resource Group | `vm-rg` |
+| VM Name | `myvm` |
+| Region | `Central India` |
+| Image | Ubuntu Server 24.04 LTS |
+| Size | `Standard_B2s` |
+| Authentication | SSH Key |
+| Username | `azureuser` |
+| Public IP | Enable for practice |
+
+**Azure CLI:**
+
+```bash
+# Create Resource Group
+az group create \
+  --name vm-rg \
+  --location centralindia
+
+# Create Linux VM
+az vm create \
+  --resource-group vm-rg \
+  --name myvm \
+  --image Ubuntu2204 \
+  --size Standard_B2s \
+  --admin-username azureuser \
+  --generate-ssh-keys
+
+# List VMs
+az vm list -o table
+
+# Get VM public IP
+az vm show \
+  -d \
+  -g vm-rg \
+  -n myvm \
+  --query publicIps \
+  -o tsv
+
+# Start / Stop
+az vm start -g vm-rg -n myvm
+az vm stop -g vm-rg -n myvm
+
+# Deallocate — stops compute billing
+az vm deallocate -g vm-rg -n myvm
+
+# Delete
+az vm delete -g vm-rg -n myvm --yes
+```
+
+**Remember:** `stop` and `deallocate` are different. For cost control, **deallocate** the VM when it isn't needed.
+
+---
+
+### 2. Disk Types & Performance
+
+Azure VM storage mainly consists of:
+
+```text
+Azure VM
+   |
+   +-- OS Disk
+   |
+   +-- Data Disk
+   |
+   +-- Temporary Disk
+```
+
+| Disk Type | Performance | Typical Use |
+|---|---|---|
+| Standard HDD | Low | Backup / infrequent workloads |
+| Standard SSD | Moderate | Dev/Test |
+| Premium SSD | High | Production |
+| Premium SSD v2 | Higher/configurable | Performance workloads |
+| Ultra Disk | Very High | Databases / I/O-intensive workloads |
+
+Important performance terms:
+
+```text
+IOPS       = Input/Output operations per second
+Throughput = Amount of data transferred per second
+Latency    = Time required for an I/O operation
+```
+
+**Practice:** VM → Disks → Create and attach new disk → initialize/mount inside the operating system.
+
+---
+
+### 3. Images & Snapshots
+
+**Image**
+
+A reusable template for creating VMs.
+
+```text
+Image
+  |
+  +---- VM1
+  +---- VM2
+  +---- VM3
+```
+
+Can contain OS, applications and configuration.
+
+**Snapshot**
+
+Point-in-time copy of a managed disk.
+
+```text
+VM
+ |
+OS Disk
+ |
+Snapshot
+ |
+New Disk
+```
+
+Typical snapshot CLI:
+
+```bash
+az snapshot create \
+  --resource-group vm-rg \
+  --name mySnapshot \
+  --source myDisk
+```
+
+**Remember:**
+
+```text
+Image    → Create/reproduce VMs
+Snapshot → Backup/copy a disk at a point in time
+```
+
+For production image management at scale, learn **Azure Compute Gallery**.
+
+---
+
+### 4. Availability Sets vs Availability Zones
+
+| Feature | Availability Set | Availability Zone |
+|---|---|---|
+| Protection | Hardware/rack failures | Datacenter failure |
+| Concept | Fault + Update Domains | Separate physical zones |
+| Scope | Datacenter | Region |
+| Best for | Legacy/compatible architectures | Modern HA architectures |
+
+**Availability Set:**
+
+```text
+Datacenter
+ ├── Fault Domain 1 → VM1
+ └── Fault Domain 2 → VM2
+```
+
+**Availability Zones:**
+
+```text
+Azure Region
+ ├── Zone 1 → VM1
+ ├── Zone 2 → VM2
+ └── Zone 3 → VM3
+```
+
+For new highly available architectures, **Availability Zones are generally preferred when the region/service supports them**.
+
+---
+
+### 5. VM Scale Sets
+
+**VM Scale Sets (VMSS)** allow multiple identical VM instances to be deployed and scaled.
+
+```text
+               Load Balancer
+                     |
+          +----------+----------+
+          |          |          |
+         VM1        VM2        VM3
+                     |
+               Autoscaling
+```
+
+Useful for:
+
+- Web applications
+- Stateless applications
+- High availability
+- Horizontal scaling
+- Variable traffic
+
+Example:
+
+```bash
+az vmss create \
+  --resource-group vm-rg \
+  --name myvmss \
+  --image Ubuntu2204 \
+  --admin-username azureuser \
+  --generate-ssh-keys \
+  --instance-count 2
+```
+
+Concept:
+
+```text
+Traffic increases
+      ↓
+Autoscale rule
+      ↓
+2 VMs → 4 VMs → 6 VMs
+
+Traffic decreases
+      ↓
+Scale in
+      ↓
+6 VMs → 3 VMs → 2 VMs
+```
+
+---
+
+### 6. Azure Bastion Access
+
+Azure Bastion provides secure browser-based **SSH/RDP access** to VMs.
+
+Traditional:
+
+```text
+Internet
+   |
+Public IP
+   |
+SSH / RDP
+   |
+VM
+```
+
+With Bastion:
+
+```text
+User Browser
+     |
+Azure Bastion
+     |
+Private IP
+     |
+    VM
+```
+
+Major benefit: the VM does **not need its own public IP** for normal Bastion access.
+
+**Portal practice:**
+
+VM → Connect → Bastion → Deploy Bastion → Enter credentials → Connect
+
+Good security practice:
+
+```text
+Avoid exposing:
+22   SSH
+3389 RDP
+
+directly to the Internet.
+```
+
+---
+
+### 7. VM Monitoring Basics
+
+Main Azure monitoring service:
+
+**Azure Monitor**
+
+```text
+Azure VM
+   |
+   +-- Metrics
+   +-- Logs
+   +-- Alerts
+   +-- VM Insights
+          |
+     Azure Monitor
+```
+
+Useful metrics include:
+
+- CPU percentage
+- Disk IOPS
+- Disk throughput
+- Network In/Out
+- Availability
+- VM health
+
+**Practice:**
+
+VM → Monitoring → Metrics
+
+Select:
+
+```text
+Metric Namespace: Virtual Machine Host
+Metric: Percentage CPU
+Aggregation: Average
+```
+
+Then create an alert such as:
+
+```text
+CPU > 80%
+      ↓
+Azure Monitor Alert
+      ↓
+Action Group
+      ↓
+Email / Notification
+```
+
+---
+
+### 8. Auto Shutdown / Cost Control
+
+For Dev/Test VMs, configure automatic shutdown.
+
+Portal:
+
+```text
+VM
+ ↓
+Operations
+ ↓
+Auto-shutdown
+ ↓
+Enable
+ ↓
+Select shutdown time
+```
+
+Example:
+
+```text
+Start VM → 9:00 AM
+     |
+Training / Lab
+     |
+Auto Shutdown → 7:00 PM
+```
+
+Other important cost controls:
+
+- Choose the correct VM size.
+- Deallocate unused VMs.
+- Delete unused managed disks and public IPs.
+- Use Azure Advisor recommendations.
+- Configure Azure Budget alerts.
+- Consider Reservations/Savings Plans for predictable workloads.
+- Use Spot VMs only for interruption-tolerant workloads.
+
+### Quick Revision
+
+```text
+VM               → Compute server
+Managed Disk     → Persistent VM storage
+Image            → Template for creating VMs
+Snapshot         → Point-in-time disk copy
+Availability Set → Hardware/rack-level resiliency
+Availability Zone→ Datacenter-level resiliency
+VMSS             → Multiple scalable VM instances
+Bastion          → Secure SSH/RDP without VM public IP
+Azure Monitor    → Metrics, logs and alerts
+Auto Shutdown    → Reduce unnecessary VM cost
+```
+
+**Best hands-on sequence:** Create VM → attach data disk → take snapshot → create image → test Availability Zone → create VMSS → connect using Bastion → configure CPU alert → enable auto-shutdown.
+
 <div align="center">
 
 [![Open in Codespaces](https://img.shields.io/badge/Open%20in-Codespaces-24292e?logo=github&style=for-the-badge)](https://codespaces.new/atulkamble/template.git)
