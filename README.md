@@ -155,6 +155,134 @@ For production image management at scale, learn **Azure Compute Gallery**.
 | Scope | Datacenter | Region |
 | Best for | Legacy/compatible architectures | Modern HA architectures |
 
+For Azure, the number of VM “copies” differs between **Availability Sets, Availability Zones, and VM Scale Sets**.
+
+### Availability Sets vs Zones vs VM Scale Sets
+
+| Feature | VM Copies | Placement | Main Purpose |
+|---|---:|---|---|
+| **Availability Set** | **Minimum 2 VMs recommended** | Same Azure region/datacenter grouping, spread across fault/update domains | Protect from hardware/maintenance failures |
+| **Availability Zones** | **Usually 2–3 VMs** | Separate physical zones/datacenters in one region | Protect from datacenter/zone failure |
+| **VM Scale Set (VMSS)** | **0 to 1000+ VMs**, depending on configuration/limits | Automatically creates/manages many identical VM instances | Scaling + high availability |
+
+### 1. Availability Set — 2 VM copies
+
+```text
+             Availability Set
+                    |
+          +---------+---------+
+          |                   |
+     Fault Domain 1       Fault Domain 2
+          |                   |
+        VM-1                  VM-2
+      Copy 1                Copy 2
+```
+
+You manually create **VM-1 and VM-2** and place both in the same Availability Set.
+
+**Remember:**
+
+```text
+Availability Set
+      |
+      +-- VM1
+      |
+      +-- VM2
+
+Recommended = 2 or more VMs
+Automatic VM copies = NO
+Automatic scaling   = NO
+```
+
+### 2. Availability Zones — typically 3 VM copies
+
+```text
+               Azure Region
+                    |
+        +-----------+-----------+
+        |           |           |
+      Zone 1      Zone 2      Zone 3
+        |           |           |
+       VM-1        VM-2        VM-3
+      Copy 1      Copy 2      Copy 3
+```
+
+Each zone is a **physically separate location** within an Azure region.
+
+```text
+Zone 1 → VM1
+Zone 2 → VM2
+Zone 3 → VM3
+```
+
+Using **3 copies across 3 zones** gives strong zone-level resiliency, although you don't always need exactly three VMs.
+
+### 3. VM Scale Set — many identical VM copies
+
+```text
+                    Users
+                      |
+                Load Balancer
+                      |
+               VM Scale Set
+                      |
+          +-----------+-----------+
+          |           |           |
+        VM-1        VM-2        VM-3
+          |           |           |
+        Copy        Copy        Copy
+
+              High CPU / Load
+                     ↓
+             + VM-4 + VM-5
+
+              Low CPU / Load
+                     ↓
+             - VM-4 - VM-5
+```
+
+VMSS can automatically increase or decrease the number of instances:
+
+```text
+Normal Load
+VM1  VM2
+
+High Load
+VM1  VM2  VM3  VM4  VM5
+          ↑
+       Scale Out
+
+Low Load
+VM1  VM2
+          ↓
+        Scale In
+```
+
+### Easy way to remember
+
+```text
+Availability Set
+VM1 + VM2
+   ↓
+Hardware/Maintenance Protection
+
+
+Availability Zones
+Zone-1      Zone-2      Zone-3
+  VM1         VM2         VM3
+   ↓
+Datacenter/Zone Protection
+
+
+VM Scale Set
+VM1 VM2 → VM1 VM2 VM3 VM4 VM5
+              ↑
+          Auto Scaling
+```
+
+**Key distinction:** Availability Sets and Zones are primarily about **where separate VM instances are placed for availability**. VM Scale Sets are about **managing and scaling a fleet of VM instances**.
+
+
 **Availability Set:**
 
 ```text
